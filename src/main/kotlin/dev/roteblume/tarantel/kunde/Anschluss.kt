@@ -1,9 +1,11 @@
 package dev.roteblume.tarantel.kunde
 
 import dev.roteblume.tarantel.api.Anschlusser
+import dev.roteblume.tarantel.api.Authentifikator
 import dev.roteblume.tarantel.api.Leser
 import dev.roteblume.tarantel.api.Schreiber
 import dev.roteblume.tarantel.api.exc.NichtUmgesetzt
+import dev.roteblume.tarantel.kunde.auth.GuestAuthentifikator
 import dev.roteblume.tarantel.kunde.protokoll.KrankWillkommenPaket
 import dev.roteblume.tarantel.kunde.protokoll.WILLKOMEN
 import dev.roteblume.tarantel.werkzeug.teilen
@@ -18,8 +20,8 @@ import io.vertx.kotlin.coroutines.awaitEvent
 class Anschluss(
     private val vertx: Vertx,
     private val opts: NetClientOptions,
-    private val addr: SocketAddress
-
+    private val addr: SocketAddress,
+    private val auth: Authentifikator = GuestAuthentifikator()
 ) : Schreiber<Buffer>, Leser<Buffer>, Anschlusser {
     private lateinit var socket: NetSocket
 
@@ -56,6 +58,10 @@ class Anschluss(
         return paar.first
     }
 
+    private suspend fun authentifizierung() {
+        auth.authentifizierung(socket)
+    }
+
     override suspend fun liest(): Buffer {
 
         throw NichtUmgesetzt()
@@ -64,5 +70,4 @@ class Anschluss(
     override suspend fun schreibt(wert: Buffer) {
         throw NichtUmgesetzt()
     }
-
 }

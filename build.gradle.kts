@@ -55,6 +55,7 @@ dependencies {
     compile("io.vertx:vertx-lang-kotlin:$vertxVersion")
     compile("io.vertx:vertx-core:$vertxVersion")
     compile("io.vertx:vertx-lang-kotlin-coroutines:$vertxVersion")
+    compile("com.daveanthonythomas.moshipack:moshipack:1.0.0-beta")
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.2.0")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.2.0")

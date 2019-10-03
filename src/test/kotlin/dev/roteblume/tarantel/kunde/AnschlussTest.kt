@@ -1,5 +1,6 @@
 package dev.roteblume.tarantel.kunde
 
+import dev.roteblume.tarantel.kunde.auth.authentifikatorVon
 import io.vertx.core.Vertx
 import io.vertx.core.net.SocketAddress
 import io.vertx.junit5.Timeout
@@ -22,11 +23,11 @@ internal class AnschlussTest {
 
     @BeforeEach
     fun zerreißen(vertx: Vertx, ctx: VertxTestContext) {
-        val options = netClientOptionsOf()
         ztu = Anschluss(
             vertx= vertx,
             opts = netClientOptionsOf(),
-            addr = SocketAddress.inetSocketAddress(3301, "localhost")
+            addr = SocketAddress.inetSocketAddress(3301, "localhost"),
+            auth = authentifikatorVon(name = "mo", parole = "password")
         )
         vertx.deployVerticle(DummyVerticle(), ctx.completing())
     }

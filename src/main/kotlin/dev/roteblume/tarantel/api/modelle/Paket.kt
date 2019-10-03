@@ -13,5 +13,5 @@ data class Paket(
     val hasBody: Boolean
     get() = body.isNotEmpty()
 
-    private fun kopfzeile(schlüssel: Schlüssel): Long = (headers[schlüssel] ?: throw UngPaket()) as Long
+    private fun kopfzeile(schlüssel: Schlüssel): Long = (headers[schlüssel.id] ?: throw UngPaket()) as Long
 }
