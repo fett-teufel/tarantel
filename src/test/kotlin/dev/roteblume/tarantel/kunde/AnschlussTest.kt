@@ -1,6 +1,7 @@
 package dev.roteblume.tarantel.kunde
 
 import dev.roteblume.tarantel.kunde.auth.authentifikatorVon
+import dev.roteblume.testing.spotten
 import io.vertx.core.Vertx
 import io.vertx.core.net.SocketAddress
 import io.vertx.junit5.Timeout
@@ -27,7 +28,8 @@ internal class AnschlussTest {
             vertx= vertx,
             opts = netClientOptionsOf(),
             addr = SocketAddress.inetSocketAddress(3301, "localhost"),
-            auth = authentifikatorVon(name = "mo", parole = "password")
+            auth = authentifikatorVon(name = "mo", parole = "password"),
+            einPaketfabrik = spotten()
         )
         vertx.deployVerticle(DummyVerticle(), ctx.completing())
     }
