@@ -190,7 +190,6 @@ internal class KodierenKtTest {
         val exp = (0..MAX_16BIT+2).asSequence().map {
             gen.strings().string()
         }.toList()
-        println("HOR: ${exp.size}")
         zts.packen(exp)
 
         val value = MessagePack.newDefaultUnpacker(zts.bytes).unpackValue()

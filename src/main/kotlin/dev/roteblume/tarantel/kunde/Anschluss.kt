@@ -2,6 +2,7 @@ package dev.roteblume.tarantel.kunde
 
 import dev.roteblume.tarantel.api.Anschlusser
 import dev.roteblume.tarantel.api.Authentifikator
+import dev.roteblume.tarantel.api.DiePaketfabrik
 import dev.roteblume.tarantel.api.Leser
 import dev.roteblume.tarantel.api.Schreiber
 import dev.roteblume.tarantel.api.exc.NichtUmgesetzt
@@ -21,6 +22,7 @@ class Anschluss(
     private val vertx: Vertx,
     private val opts: NetClientOptions,
     private val addr: SocketAddress,
+    private val einPaketfabrik: DiePaketfabrik,
     private val auth: Authentifikator = GuestAuthentifikator()
 ) : Schreiber<Buffer>, Leser<Buffer>, Anschlusser {
     private lateinit var socket: NetSocket
@@ -32,10 +34,10 @@ class Anschluss(
     override suspend fun connect() {
         socket = vertx.createNetClient().connectAwait(addr)
         lessepuffer = Buffer.buffer()
+
         willkommen()
         salz = erhaltSalz()
-        println("version: ´$version´")
-        println("salz: ´salz´")
+        auth.authentifizierung(salz, socket)
     }
 
     private suspend fun willkommen() {
@@ -43,6 +45,7 @@ class Anschluss(
         val willkomenSchnur = puffer.toString()
         if (!willkomenSchnur.startsWith(WILLKOMEN)) throw KrankWillkommenPaket()
         version = willkomenSchnur.substring(WILLKOMEN.length)
+
     }
 
     private suspend fun erhaltSalz(): String {
@@ -59,7 +62,7 @@ class Anschluss(
     }
 
     private suspend fun authentifizierung() {
-        auth.authentifizierung(socket)
+        auth.authentifizierung(salz, socket)
     }
 
     override suspend fun liest(): Buffer {
