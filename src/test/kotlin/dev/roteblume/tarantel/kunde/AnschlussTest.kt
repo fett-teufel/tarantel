@@ -26,10 +26,8 @@ internal class AnschlussTest {
     fun zerreißen(vertx: Vertx, ctx: VertxTestContext) {
         ztu = Anschluss(
             vertx= vertx,
-            opts = netClientOptionsOf(),
             addr = SocketAddress.inetSocketAddress(3301, "localhost"),
-            auth = authentifikatorVon(name = "mo", parole = "password"),
-            einPaketfabrik = spotten()
+            auth = authentifikatorVon(name = "mo", parole = "password")
         )
         vertx.deployVerticle(DummyVerticle(), ctx.completing())
     }

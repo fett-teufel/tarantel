@@ -1,5 +1,8 @@
 package dev.roteblume.tarantel.kunde
 
+import dev.roteblume.enigma.DerEnigmafluss
+import dev.roteblume.netz.DieLuftschlange
+import dev.roteblume.netz.DiePufferedluftschlange
 import dev.roteblume.tarantel.api.Anschlusser
 import dev.roteblume.tarantel.api.Authentifikator
 import dev.roteblume.tarantel.api.DiePaketfabrik
@@ -16,53 +19,48 @@ import io.vertx.core.net.NetClientOptions
 import io.vertx.core.net.NetSocket
 import io.vertx.core.net.SocketAddress
 import io.vertx.kotlin.core.net.connectAwait
+import io.vertx.kotlin.coroutines.await
 import io.vertx.kotlin.coroutines.awaitEvent
+import kotlinx.coroutines.CoroutineScope
 
 class Anschluss(
     private val vertx: Vertx,
-    private val opts: NetClientOptions,
     private val addr: SocketAddress,
-    private val einPaketfabrik: DiePaketfabrik,
     private val auth: Authentifikator = GuestAuthentifikator()
 ) : Schreiber<Buffer>, Leser<Buffer>, Anschlusser {
     private lateinit var socket: NetSocket
 
     private lateinit var lessepuffer: Buffer
-    private lateinit var salz: String
+    private lateinit var salz: ByteArray
     private lateinit var version: String
+    private lateinit var dieLuftschlange: DieLuftschlange
+    private lateinit var enigma: DerEnigmafluss
 
     override suspend fun connect() {
         socket = vertx.createNetClient().connectAwait(addr)
-        lessepuffer = Buffer.buffer()
-
+        println("connected")
+        dieLuftschlange = DiePufferedluftschlange(vertx, socket)
+        enigma = DerEnigmafluss(dieLuftschlange)
+        println("vor willkommen")
         willkommen()
+        println("nach willkommen")
         salz = erhaltSalz()
-        auth.authentifizierung(salz, socket)
+        println("nehmen salz")
+        auth.authentifizierung(salz, socket, enigma)
+        println("authentifizierung")
     }
 
     private suspend fun willkommen() {
-        val puffer = liestN(64)
+        val puffer = dieLuftschlange.liest(64)
+
         val willkomenSchnur = puffer.toString()
+        println("WillkommentSchnur=$willkomenSchnur")
         if (!willkomenSchnur.startsWith(WILLKOMEN)) throw KrankWillkommenPaket()
         version = willkomenSchnur.substring(WILLKOMEN.length)
-
     }
 
-    private suspend fun erhaltSalz(): String {
-        return liestN(64).toString()
-    }
-
-    private suspend fun liestN(Länge: Int): Buffer {
-        while (lessepuffer.length() < Länge) {
-            lessepuffer.appendBuffer(awaitEvent<Buffer> { socket.handler(it) })
-        }
-        val paar = lessepuffer.teilen(Länge)
-        lessepuffer = paar.second
-        return paar.first
-    }
-
-    private suspend fun authentifizierung() {
-        auth.authentifizierung(salz, socket)
+    private suspend fun erhaltSalz(): ByteArray {
+        return dieLuftschlange.liest(64).bytes
     }
 
     override suspend fun liest(): Buffer {

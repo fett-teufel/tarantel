@@ -2,6 +2,7 @@ package dev.roteblume.enigma
 
 import com.nhaarman.mockitokotlin2.eq
 import dev.roteblume.kottbus.Generator
+import dev.roteblume.kottbus.Strings
 import dev.roteblume.kottbus.impl.randomify.RandomGenerator
 import dev.roteblume.netz.DieLuftschlange
 import dev.roteblume.tarantel.werkzeug.pufferVon
@@ -10,6 +11,7 @@ import dev.roteblume.testing.long
 import dev.roteblume.testing.spotten
 import dev.roteblume.testing.wann
 import dev.roteblume.testing.array
+import dev.roteblume.testing.dieKarte
 import io.vertx.core.buffer.Buffer
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.runBlocking
@@ -22,6 +24,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito
 import org.mockito.stubbing.OngoingStubbing
+import java.util.concurrent.atomic.AtomicInteger
 
 internal class DerEnigmaflussTest {
     private lateinit var zts: DerEnigmafluss
@@ -195,7 +198,8 @@ internal class DerEnigmaflussTest {
         val orig = gen.strings().string(MAX_5BIT + 1)
         exp.packen(orig)
         runBlocking {
-            wannLiestEinByte(luftschlange.liestEinByte(), exp)
+            val index = AtomicInteger(0)
+            wannLiestEinByte(index, luftschlange.liestEinByte(), exp)
             wann(luftschlange.liest(eq(exp.length() - 2))).then { exp.slice(2, exp.length()) }
             val dasResultat = zts.auspacken() as String
             assertEquals(orig, dasResultat)
@@ -205,9 +209,11 @@ internal class DerEnigmaflussTest {
     @Test
     fun `sollte fähig sein eine lange Schnur zu auspacken`() {
         val orig = gen.strings().string(MAX_8BIT + 1)
+        val index = AtomicInteger(0)
+
         exp.packen(orig)
         runBlocking {
-            wannLiestEinByte(luftschlange.liestEinByte(), exp)
+            wannLiestEinByte(index, luftschlange.liestEinByte(), exp)
             wann(luftschlange.liest(eq(2))).then { exp.slice(1, 3) }
             wann(luftschlange.liest(eq(exp.length() - 3))).then { exp.slice(3, exp.length()) }
             val dasResultat = zts.auspacken() as String
@@ -216,21 +222,15 @@ internal class DerEnigmaflussTest {
     }
 
     @Test
-    fun `sollte fähig sein array mit integers zu auspacken`() {
+    fun `sollte fähig sein array mit die Schnure zu auspacken`() {
         val orig = gen.strings().array(10).toList()
         exp.packen(orig)
+        val index = AtomicInteger(0)
 
         runBlocking {
-            var i = -1
-            wann(luftschlange.liestEinByte()).then {
-                exp.getByte(++i)
-            }
-            wann(luftschlange.liest(alle(0))).then { invocation ->
-                val dieLänge = invocation.getArgument<Int>(0)
-                val von = i
-                i += dieLänge
-                exp.slice(von, i)
-            }
+            wannLiestEinByte(index, luftschlange.liestEinByte(), exp)
+            wannLiest(index, luftschlange.liest(alle(0)), exp)
+
             val dasResultat = zts.auspacken() as List<String>
             assertEquals(orig.size, dasResultat.size)
             repeat(dasResultat.size) {
@@ -238,44 +238,152 @@ internal class DerEnigmaflussTest {
             }
         }
     }
-    /*@Test
-    fun `sollte fähig sein array mit 16bite länge zu auspacken()`() {
-        val orig = gen.strings().array(MAX_4BIT+1).toList()
-        exp.packen(orig)
-        assertEquals(exp.getByte(0), MP_ARRAY16)
-        runBlocking {
-            var i = -1
-            wann(luftschlange.liestEinByte()).then { exp.getByte(++i) }
-            wann(luftschlange.liest(alle(0))).then {invocation ->
-                val dieLänge = invocation.getArgument<Int>(0)
 
-                val von = ++i
-                i+=dieLänge
-                exp.slice(von, i)
-            }
+    @Test
+    fun `sollte fähig sein 16bit länge array mit integers zu auspacken`() {
+        val orig = gen.strings().array(MAX_16BIT).toList()
+        exp.packen(orig)
+        val index = AtomicInteger(0)
+
+        runBlocking {
+            wannLiestEinByte(index, luftschlange.liestEinByte(), exp)
+            wannLiest(index, luftschlange.liest(alle(0)), exp)
+
             val dasResultat = zts.auspacken() as List<String>
             assertEquals(orig.size, dasResultat.size)
-            repeat(dasResultat.size){
+            repeat(dasResultat.size) {
                 assertEquals(orig[it].length, dasResultat[it].length, it.toString())
             }
         }
-    }*/
+    }
 
     @Test
-    fun `sollte fähig sein array mit länge zu auspacken`() {
-        val chan = Channel<String>(1)
+    fun `sollte fähig sein 32bit länge array mit die Schnurs zu auspacken`() {
+        val orig = gen.strings().array(MAX_16BIT + 1).toList()
+        exp.packen(orig)
+        val index = AtomicInteger(0)
+
         runBlocking {
-            assertTrue { chan.offer("4") }
-            assertFalse { chan.offer("2") }
+            wannLiestEinByte(index, luftschlange.liestEinByte(), exp)
+            wannLiest(index, luftschlange.liest(alle(0)), exp)
+
+            val dasResultat = zts.auspacken() as List<String>
+            assertEquals(orig.size, dasResultat.size)
+            repeat(dasResultat.size) {
+                assertEquals(orig[it].length, dasResultat[it].length, it.toString())
+            }
         }
+    }
+
+    @Test
+    fun `sollte fähig sein klein map mit die Schnurs zu auspacken`() {
+        val orig = gen.strings().dieKarte(10)
+        exp.packen(orig)
+        val index = AtomicInteger(0)
+        runBlocking {
+            wannLiestEinByte(index, luftschlange.liestEinByte(), exp)
+            wannLiest(index, luftschlange.liest(alle(0)), exp)
+
+            val dasResultat = zts.auspacken() as Map<String, String>
+            assertEquals(orig.size, dasResultat.size)
+            dasResultat.entries.forEach {
+                assertTrue(orig.containsKey(it.key))
+                assertEquals(orig[it.key], it.value)
+            }
+        }
+    }
+
+    @Test
+    fun `sollte fähig sein map mit die Schnurs zu auspacken`() {
+        val orig = gen.strings().dieKarte(MAX_16BIT)
+        exp.packen(orig)
+        val index = AtomicInteger(0)
+        runBlocking {
+            wannLiestEinByte(index, luftschlange.liestEinByte(), exp)
+            wannLiest(index, luftschlange.liest(alle(0)), exp)
+
+            val dasResultat = zts.auspacken() as Map<String, String>
+            assertEquals(orig.size, dasResultat.size)
+            dasResultat.entries.forEach {
+                assertTrue(orig.containsKey(it.key))
+                assertEquals(orig[it.key], it.value)
+            }
+        }
+    }
+
+    @Test
+    fun `sollte fähig sein große map mit die Schnurs zu auspacken`() {
+        val orig = gen.strings().dieKarte(MAX_16BIT + 1)
+        exp.packen(orig)
+        val index = AtomicInteger(0)
+        runBlocking {
+            wannLiestEinByte(index, luftschlange.liestEinByte(), exp)
+            wannLiest(index, luftschlange.liest(alle(0)), exp)
+
+            val dasResultat = zts.auspacken() as Map<String, String>
+            assertEquals(orig.size, dasResultat.size)
+            dasResultat.entries.forEach {
+                assertTrue(orig.containsKey(it.key))
+                assertEquals(orig[it.key], it.value)
+            }
+        }
+    }
+
+    @Test
+    fun `sollte fähig sein klein byte liste zu auspacken`() {
+        val orig = gen.strings().string(5)
+        exp.packen(orig.toByteArray())
+        val index = AtomicInteger(0)
+        runBlocking {
+            wannLiestEinByte(index, luftschlange.liestEinByte(), exp)
+            wannLiest(index, luftschlange.liest(alle(0)), exp)
+
+            val dasResultat = zts.auspacken() as ByteArray
+            assertEquals(orig, dasResultat.toString(Charsets.UTF_8))
+        }
+    }
+
+    @Test
+    fun `sollte fähig sein byte liste zu auspacken`() {
+        val orig = gen.strings().string(MAX_8BIT + 1)
+        exp.packen(orig.toByteArray())
+        val index = AtomicInteger(0)
+        runBlocking {
+            wannLiestEinByte(index, luftschlange.liestEinByte(), exp)
+            wannLiest(index, luftschlange.liest(alle(0)), exp)
+
+            val dasResultat = zts.auspacken() as ByteArray
+            assertEquals(orig, dasResultat.toString(Charsets.UTF_8))
+        }
+    }
+
+    @Test
+    fun `sollte fähig sein große byte liste zu auspacken`() {
+        val orig = gen.strings().string(MAX_16BIT + 1)
+        exp.packen(orig.toByteArray())
+        val index = AtomicInteger(0)
+        runBlocking {
+            wannLiestEinByte(index, luftschlange.liestEinByte(), exp)
+            wannLiest(index, luftschlange.liest(alle(0)), exp)
+
+            val dasResultat = zts.auspacken() as ByteArray
+            assertEquals(orig, dasResultat.toString(Charsets.UTF_8))
+        }
+    }
+
+}
+
+fun <T> wannLiestEinByte(index: AtomicInteger, methodCall: T, puffer: Buffer): OngoingStubbing<T> {
+    return wann(methodCall).then {
+        val res = puffer.getByte(index.getAndIncrement())
+        res
     }
 }
 
-fun <T> wannLiestEinByte(methodCall: T, puffer: Buffer): OngoingStubbing<T> {
-    var i = 0
-    return wann(methodCall).then {
-        val res = puffer.getByte(i)
-        i++
-        res
+fun <T> wannLiest(index: AtomicInteger, methodCall: T, puffer: Buffer): OngoingStubbing<T> {
+    return wann(methodCall).then { invocation ->
+        val dieLänge = invocation.getArgument<Int>(0)
+        val von = index.get()
+        puffer.slice(von, index.addAndGet(dieLänge))
     }
 }

@@ -1,5 +1,6 @@
 package dev.roteblume.tarantel.kunde.auth
 
+import dev.roteblume.enigma.DerEnigmafluss
 import dev.roteblume.kottbus.Generator
 import dev.roteblume.kottbus.impl.randomify.RandomGenerator
 import dev.roteblume.tarantel.api.Authentifikator
@@ -19,7 +20,7 @@ internal class GuestAuthentifikatorTest {
     @Test
     fun authentifizierung() {
         runBlocking {
-            zts.authentifizierung(gen.strings().string(), spotten())
+            zts.authentifizierung(gen.strings().string().toByteArray(), spotten(), DerEnigmafluss(spotten()))
         }
     }
 }

@@ -51,7 +51,6 @@ class DerEnigmafluss(
             MP_BIN32 -> auspackenDieByteliste(luftschlange.liestInt())
             else -> {
                 val uint = klass.toInt().asUint()
-
                 return if (uint >= MP_NEGATIVE_FIXNUM_INT && uint <= MP_NEGATIVE_FIXNUM_INT + MAX_5BIT) {
                     klass.toInt()
                 } else if (uint >= MP_FIXARRAY_INT && uint <= MP_FIXARRAY_INT + MAX_4BIT) {
@@ -61,7 +60,6 @@ class DerEnigmafluss(
                 } else if (uint >= MP_FIXSTR_INT && uint <= MP_FIXSTR_INT + MAX_5BIT) {
                     auspackenDieSchnur(uint - MP_FIXSTR_INT)
                 } else if (uint <= MAX_7BIT) {
-                    // MP_FIXNUM - the value is value as an int
                     klass.toInt()
                 } else {
                     throw IllegalArgumentException("Input contains invalid type value $klass")
